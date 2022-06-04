@@ -1,12 +1,11 @@
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { ConfigModule } from '@nestjs/config';
-import { mongoDbProvider } from './db/mongodb.provider';
+import { WorkoutModule } from './workout/workout.module';
 
 @Module({
-  imports: [ConfigModule.forRoot()],
+  imports: [WorkoutModule],
   controllers: [AppController],
-  providers: [AppService, mongoDbProvider],
+  providers: [AppService],
 })
 export class AppModule {}
