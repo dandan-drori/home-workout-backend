@@ -8,11 +8,15 @@ export class WorkoutService {
   }
 
   async getReps(): Promise<number> {
+    const oneDayMs = 86400000;
     const workouts = await this.collection.find({}).toArray();
     const startDate = workouts[0].startDate;
-    const oneDayMs = 86400000;
     const datesDiff = Date.now() - startDate;
-    return Math.floor(datesDiff / oneDayMs);
+    const daysDiff = Math.floor(datesDiff / oneDayMs);
+    // don't include weekends
+    const weekendsInDiff = Math.floor(daysDiff / 7);
+    const daysInWeekend = 2;
+    return daysDiff - weekendsInDiff * daysInWeekend;
   }
 
   async resetSets() {
