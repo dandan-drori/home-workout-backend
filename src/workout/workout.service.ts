@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { Log } from "./workout.model";
 
 @Injectable()
 export class WorkoutService {
@@ -84,6 +85,16 @@ export class WorkoutService {
         ? { reason, date: Date.now() }
         : { sets: workout.sets, date: Date.now() };
       await this.collection.updateOne({ _id }, { $push: { logs } });
+    } catch (err) {
+      console.log(err);
+      throw err;
+    }
+  }
+
+  async getWorkoutLogs(): Promise<Log[]> {
+    try {
+      const workouts = await this.collection.find({}).toArray();
+      return workouts[0].logs;
     } catch (err) {
       console.log(err);
       throw err;

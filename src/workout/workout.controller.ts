@@ -1,5 +1,6 @@
 import { Body, Controller, Get, Post } from '@nestjs/common';
 import { WorkoutService } from './workout.service';
+import { Log } from "./workout.model";
 
 @Controller('workout')
 export class WorkoutController {
@@ -23,6 +24,11 @@ export class WorkoutController {
   @Get('targetSets')
   getTargetSets(): Promise<number> {
     return this.workoutService.getTargetSets();
+  }
+
+  @Get('logs')
+  getWorkoutLogs(): Promise<Log[]> {
+    return this.workoutService.getWorkoutLogs();
   }
 
   @Post('sets')
