@@ -8,22 +8,34 @@ export class WorkoutService {
   }
 
   async getReps(): Promise<number> {
-    const oneDayMs = 86400000;
-    const workouts = await this.collection.find({}).toArray();
-    const startDate = workouts[0].startDate;
-    const datesDiff = Date.now() - startDate;
-    const daysDiff = Math.floor(datesDiff / oneDayMs);
-    // don't include weekends
-    const weekendsInDiff = Math.floor(daysDiff / 7);
-    const daysInWeekend = 2;
-    return daysDiff - weekendsInDiff * daysInWeekend;
+    try {
+      const oneDayMs = 86400000;
+      const workouts = await this.collection.find({}).toArray();
+      const startDate = workouts[0].startDate;
+      const datesDiff = Date.now() - startDate;
+      const totalDaysDiff = Math.floor(datesDiff / oneDayMs);
+      if (workouts[0].daysDiff && totalDaysDiff > workouts[0].daysDiff) {
+        await this.collection.updateOne(
+          { _id: workouts[0]._id },
+          { $set: { daysDiff: totalDaysDiff } },
+        );
+        await this.logWorkout(workouts[0]);
+        await this.resetSets(workouts[0]._id);
+      }
+      return this.subtractReps(totalDaysDiff);
+    } catch (err) {
+      console.log(err);
+      throw err;
+    }
   }
 
-  async resetSets() {
+  async resetSets(id?: string) {
     try {
-      const workouts = await this.collection.find({}).toArray();
-      const _id = workouts[0]._id;
-      await this.collection.updateOne({ _id }, { $set: { sets: 0 } });
+      if (!id) {
+        const workouts = await this.collection.find({}).toArray();
+        id = workouts[0]._id;
+      }
+      await this.collection.updateOne({ _id: id }, { $set: { sets: 0 } });
       return 0;
     } catch (err) {
       console.log(err);
@@ -61,6 +73,44 @@ export class WorkoutService {
     } catch (err) {
       console.log(err);
       throw err;
+    }
+  }
+
+  async logWorkout(workout) {
+    try {
+      const reason = this.getRestReason();
+      const _id = workout._id;
+      const logs = reason
+        ? { reason, date: Date.now() }
+        : { sets: workout.sets, date: Date.now() };
+      await this.collection.updateOne({ _id }, { $push: { logs } });
+    } catch (err) {
+      console.log(err);
+      throw err;
+    }
+  }
+
+  subtractReps(daysDiff: number): number {
+    const repsToSubtractMap = {
+      daysInWeekend: 2, // remove weekends
+      daysWorkingFromTheOffice: 3, // remove office work days
+    };
+    const repsToSubtract = Object.values(repsToSubtractMap).reduce(
+      (acc: number, reps: number) => {
+        const weeksInDiff = Math.floor(daysDiff / 7);
+        return acc + reps * weeksInDiff;
+      },
+    );
+    return daysDiff - repsToSubtract;
+  }
+
+  getRestReason(): string {
+    const weekDayNumber = new Date().getDay();
+    if (weekDayNumber >= 5) {
+      return 'Weekend';
+    }
+    if (!weekDayNumber) {
+      return 'Office';
     }
   }
 }
